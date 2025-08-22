@@ -1,15 +1,22 @@
 # MCPCLI
 
-A terminal-based client for MCP (Multi-provider Chat Protocol) servers. This tool allows you to connect to and interact with various LLMs that expose an MCP interface, which is based on the XMPP Multi-User Chat (MUC) protocol (XEP-0045).
+A terminal-based client for interacting with local Large Language Models (LLMs) like Ollama and tool providers that adhere to the Model Context Protocol (MCP).
 
 ## Features
 
-*   Connect to one or more MUC rooms.
-*   Add and configure multiple XMPP accounts.
-*   Add and configure LLM profiles, associating them with your accounts.
-*   Discover MUC services on an XMPP server.
-*   Discover public rooms on a MUC service.
-*   Interactive chat client for MUC rooms.
+*   Connect to a local Ollama instance.
+*   Integrate with tool providers (MCP servers) like a local DuckDuckGo search server.
+*   Orchestrate communication between the LLM and its tools.
+
+## How it Works
+
+`mcpcli` acts as an orchestrator between a Large Language Model (like Ollama) and various tools (called MCP servers). The communication follows a simple "Model Context Protocol" (MCP).
+
+When the LLM needs to use a tool, it outputs a special JSON object on a single line, prefixed with `MCP:`. For example:
+```
+MCP:{"tool": "duckduckgo", "query": "What is the capital of France?"}
+```
+`mcpcli` intercepts this output, calls the appropriate MCP server, and feeds the result back to the LLM.
 
 ## Installation
 
@@ -25,89 +32,42 @@ A terminal-based client for MCP (Multi-provider Chat Protocol) servers. This too
     poetry install
     ```
 
+## Setup
+
+### 1. Ollama
+
+Ensure you have [Ollama](https://ollama.ai/) installed and running. `mcpcli` will connect to it at its default address (`http://localhost:11434`).
+
+### 2. DuckDuckGo MCP Server
+
+`mcpcli` is designed to work with a local DuckDuckGo search server. You will need to set this up separately.
+
+**(Note: The DuckDuckGo MCP server is a separate project that you need to create. Here is a conceptual example of what a simple Flask-based server might look like.)**
+
+**Example `ddg_server.py`:**
+```python
+from flask import Flask, request, jsonify
+from duckduckgo_search import DDGS
+
+app = Flask(__name__)
+
+@app.route('/search', methods=['POST'])
+def search():
+    query = request.json.get('query')
+    if not query:
+        return jsonify({"error": "Query not provided"}), 400
+
+    with DDGS() as ddgs:
+        results = [r for r in ddgs.text(query, max_results=5)]
+
+    return jsonify({"results": results})
+
+if __name__ == '__main__':
+    app.run(port=8000)
+```
+
+You would need to install `flask` and `duckduckgo-search`, then run this server in a separate terminal: `python ddg_server.py`.
+
 ## Usage
 
-The `mcpcli` tool is used from the command line within the project directory using `poetry run mcpcli`.
-
-### 1. Configure an Account
-
-First, you need to add an XMPP account.
-
-```bash
-poetry run mcpcli accounts add <account_name> --jid <your_jid@example.com> --password <your_password>
-```
-- `<account_name>` is a friendly name you'll use to refer to this account (e.g., `my_jabber`).
-- `<your_jid@example.com>` is your full Jabber ID.
-- `<your_password>` is your XMPP account password.
-
-**Example:**
-```bash
-poetry run mcpcli accounts add my_jabber --jid user@jabber.org --password "secret_password"
-```
-
-You can list your configured accounts with:
-```bash
-poetry run mcpcli accounts list
-```
-
-### 2. Configure an LLM Profile
-
-An "LLM profile" is a configuration that connects one of your accounts to a specific MUC room where an LLM is present.
-
-```bash
-poetry run mcpcli llms add <llm_name> --account <account_name> --room-jid <room@conference.example.com> --nickname <your_nickname>
-```
-- `<llm_name>` is a friendly name for this LLM profile (e.g., `gpt-bot`).
-- `<account_name>` is the name of the account you configured in the previous step.
-- `<room@conference.example.com>` is the JID of the MUC room.
-- `<your_nickname>` is the nickname you want to use in that room.
-
-**Example:**
-```bash
-poetry run mcpcli llms add gpt-bot --account my_jabber --room-jid gpt-room@conference.jabber.org --nickname MyChatNick
-```
-
-You can list your configured LLM profiles with:
-```bash
-poetry run mcpcli llms list
-```
-
-### 3. Chat with an LLM
-
-Once you have a configured LLM profile, you can start a chat session:
-
-```bash
-poetry run mcpcli chat <llm_name>
-```
-
-**Example:**
-```bash
-poetry run mcpcli chat gpt-bot
-```
-This will open an interactive chat session. Type `/quit` to exit.
-
-### 4. Discover Services and Rooms
-
-If you don't know the JID of the MUC service or rooms, you can use the `discover` commands.
-
-**Discover MUC services on a server:**
-```bash
-poetry run mcpcli discover services <server> --jid <your_jid@example.com> --password <your_password>
-```
-- `<server>` is the domain of the XMPP server (e.g., `jabber.org`).
-
-**Example:**
-```bash
-poetry run mcpcli discover services jabber.org --jid user@jabber.org --password "secret_password"
-```
-
-**Discover public rooms on a MUC service:**
-```bash
-poetry run mcpcli discover rooms <service_jid> --jid <your_jid@example.com> --password <your_password>
-```
-- `<service_jid>` is the JID of the MUC service you discovered (e.g., `conference.jabber.org`).
-
-**Example:**
-```bash
-poetry run mcpcli discover rooms conference.jabber.org --jid user@jabber.org --password "secret_password"
-```
+(Instructions to be added)

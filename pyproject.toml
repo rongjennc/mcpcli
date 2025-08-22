@@ -1,15 +1,14 @@
 [tool.poetry]
 name = "mcpcli"
 version = "0.1.0"
-description = "A terminal-based client for MCP servers."
+description = "A terminal-based client for local LLMs and MCP servers."
 authors = ["Jules"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 typer = "^0.9.0"
-slixmpp = "^1.8.5"
+requests = "^2.31.0"
 toml = "^0.10.2"
-aioconsole = "^0.6.0"
 
 [tool.poetry.scripts]
 mcpcli = "mcpcli.main:app"
