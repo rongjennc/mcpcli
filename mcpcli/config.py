@@ -2,53 +2,24 @@ import toml
 from pathlib import Path
 from typing import Any, Dict
 
-# Define the config path
 CONFIG_DIR = Path.home() / ".config" / "mcpcli"
 CONFIG_FILE = CONFIG_DIR / "config.toml"
 
-# Default config structure
-DEFAULT_CONFIG: Dict[str, Any] = {
-    "ollama": {"endpoint": "http://localhost:11434"},
-    "mcp_servers": {
-        "duckduckgo": {"endpoint": "http://localhost:8000"} # Example
-    }
-}
-
-def ensure_config_dir_exists():
-    """Ensures the config directory exists."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+DEFAULT_CONFIG = {"ollama": {"endpoint": "http://localhost:11434"}}
 
 def load_config() -> Dict[str, Any]:
-    """Loads the configuration from the TOML file."""
-    ensure_config_dir_exists()
+    """
+    Loads the configuration from the TOML file.
+    If the file doesn't exist, it creates it with default values.
+    """
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     if not CONFIG_FILE.is_file():
-        save_config(DEFAULT_CONFIG)
+        with open(CONFIG_FILE, 'w') as f:
+            toml.dump(DEFAULT_CONFIG, f)
         return DEFAULT_CONFIG
 
-    config_data = {}
+    # In case the file is empty or malformed
     try:
-        with open(CONFIG_FILE, 'r') as f:
-            config_data = toml.load(f)
-    except (toml.TomlDecodeError, FileNotFoundError):
-        pass # Will be handled by the merge below
-
-    # Merge with defaults to ensure all keys are present
-    needs_update = False
-    if "ollama" not in config_data:
-        config_data["ollama"] = DEFAULT_CONFIG["ollama"]
-        needs_update = True
-
-    if "mcp_servers" not in config_data:
-        config_data["mcp_servers"] = DEFAULT_CONFIG["mcp_servers"]
-        needs_update = True
-
-    if needs_update:
-        save_config(config_data)
-
-    return config_data
-
-def save_config(config_data: Dict[str, Any]):
-    """Saves the configuration data to the TOML file."""
-    ensure_config_dir_exists()
-    with open(CONFIG_FILE, 'w') as f:
-        toml.dump(config_data, f)
+        return toml.load(CONFIG_FILE)
+    except toml.TomlDecodeError:
+        return DEFAULT_CONFIG

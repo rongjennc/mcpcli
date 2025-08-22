@@ -5,10 +5,10 @@ description = "A terminal-based client for local LLMs and MCP servers."
 authors = ["Jules"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 typer = "^0.9.0"
 requests = "^2.31.0"
-toml = "^0.10.2"
+httpx = "^0.25.0" # For async requests to Ollama
 
 [tool.poetry.scripts]
 mcpcli = "mcpcli.main:app"
