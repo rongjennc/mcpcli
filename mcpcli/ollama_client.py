@@ -1,18 +1,20 @@
 import httpx
 import json
+import logging
 from typing import AsyncIterator
 
 async def generate(endpoint: str, model: str, prompt: str) -> AsyncIterator[str]:
     """
     Sends a prompt to the Ollama API and yields the streaming response asynchronously.
     """
+    logging.info(f"Sending request to Ollama at {endpoint} with model {model}")
     try:
         async with httpx.AsyncClient() as client:
             async with client.stream(
                 "POST",
                 f"{endpoint.rstrip('/')}/api/generate",
                 json={"model": model, "prompt": prompt},
-                timeout=None
+                timeout=60.0
             ) as response:
                 response.raise_for_status()
                 async for line in response.aiter_lines():

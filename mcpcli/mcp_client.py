@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict, AsyncGenerator, List
 
@@ -24,28 +25,34 @@ class ClientSession:
 
     async def list_tools(self) -> List[str]:
         """
-        This would call an endpoint on the MCP server to list available tools.
-        We will hardcode it for now to return 'duckduckgo', as that is our
-        only tool.
+        Lists available tools from mcp.json.
         """
-        return ["duckduckgo"]
+        try:
+            with open("mcp.json", 'r') as f:
+                mcp_config = json.load(f)
+            tools = [server["name"] for server in mcp_config.get("servers", [])]
+            logging.info(f"Available tools: {tools}")
+            return tools
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logging.error(f"Failed to load tools from mcp.json: {e}")
+            return []
 
     async def invoke(self, tool_name: str, parameters: Dict[str, Any]) -> str:
         """Invokes a tool on the MCP server."""
         try:
-            # The user's ddg-mcp-server example implies an endpoint named after the tool.
-            # So for duckduckgo, it would be /duckduckgo/search.
-            # Let's assume a /search endpoint for the duckduckgo tool.
-            if tool_name == "duckduckgo":
-                response = await self.client.post(
-                    "/search",
-                    json=parameters,
-                    timeout=30.0
-                )
-                response.raise_for_status()
-                return json.dumps(response.json())
-            else:
-                return f"Error: Unknown tool '{tool_name}'"
+            with open("mcp.json", 'r') as f:
+                mcp_config = json.load(f)
+            server_info = next((s for s in mcp_config.get("servers", []) if s["name"] == tool_name), None)
+            if not server_info:
+                return f"Error: Tool '{tool_name}' not found in mcp.json"
+            path = server_info.get("path", "/invoke")
+            response = await self.client.post(
+                path,
+                json=parameters,
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return json.dumps(response.json())
         except httpx.RequestError as e:
             return f"Error invoking tool '{tool_name}': {e}"
 
@@ -53,10 +60,12 @@ async def run_tool(tool_name: str, query: str) -> str:
     """
     Connects to an MCP server and runs a tool using the custom client.
     """
+    logging.info(f"Running tool '{tool_name}' with query: '{query}'")
     try:
         with open("mcp.json", 'r') as f:
             mcp_config = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logging.error(f"Failed to load mcp.json: {e}")
         return "Error: mcp.json not found or is invalid."
 
     server_info = next((s for s in mcp_config.get("servers", []) if s["name"] == tool_name), None)

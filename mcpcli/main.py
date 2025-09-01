@@ -1,7 +1,10 @@
 import typer
 import asyncio
 import json
-from mcpcli import config, ollama_client, mcp_client
+import logging
+from mcpcli import config, ollama_client, mcp_client, __version__
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = typer.Typer()
 
@@ -10,7 +13,8 @@ def version():
     """
     Prints the version of mcpcli.
     """
-    print("mcpcli 0.1.0")
+    logging.info(f"Displaying version: {__version__}")
+    print(f"mcpcli {__version__}")
 
 @app.command()
 def chat(
@@ -27,9 +31,11 @@ def chat(
         print("\nChat interrupted by user.")
 
 async def amain(prompt: str, model: str, max_loops: int):
+    logging.info(f"Starting chat with model '{model}', max_loops={max_loops}")
     conf = config.load_config()
-    ollama_endpoint = conf.get("ollama", {}).get("endpoint")
+    ollama_endpoint = conf.ollama.endpoint
     if not ollama_endpoint:
+        logging.error("Ollama endpoint not configured")
         print("Ollama endpoint not configured. Please check your config.toml.")
         raise typer.Exit(code=1)
 
